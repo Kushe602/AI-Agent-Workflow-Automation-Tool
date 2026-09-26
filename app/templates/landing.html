@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block nav %}
+  <a href="/login" class="text-slate-600 hover:text-slate-900">Log in</a>
+  <a href="/register" class="rounded bg-indigo-600 px-3 py-1.5 font-medium text-white hover:bg-indigo-700">Sign up</a>
+{% endblock %}
+{% block content %}
+  <section class="py-10 text-center">
+    <h1 class="text-4xl font-bold tracking-tight text-slate-900">
+      Give the agent a goal. Watch it work.
+    </h1>
+    <p class="mx-auto mt-4 max-w-xl text-lg text-slate-600">
+      AgentFlow is an autonomous AI agent that reasons step by step and uses real tools —
+      a calculator, the clock, web fetch, and a sandboxed file workspace — streaming every
+      step live as it goes.
+    </p>
+    <div class="mt-8 flex justify-center gap-3">
+      <a href="/register" class="rounded-lg bg-indigo-600 px-5 py-2.5 font-medium text-white hover:bg-indigo-700">
+        Get started
+      </a>
+      <a href="/login" class="rounded-lg border border-slate-300 bg-white px-5 py-2.5 font-medium text-slate-700 hover:bg-slate-50">
+        Log in
+      </a>
+    </div>
+  </section>
+  <section class="mt-6 grid gap-4 sm:grid-cols-3">
+    <div class="rounded-lg border border-slate-200 bg-white p-4">
+      <h3 class="font-semibold text-slate-900">Real tool-calling</h3>
+      <p class="mt-1 text-sm text-slate-600">A multi-turn Claude tool-use loop, not a single prompt.</p>
+    </div>
+    <div class="rounded-lg border border-slate-200 bg-white p-4">
+      <h3 class="font-semibold text-slate-900">Live streaming</h3>
+      <p class="mt-1 text-sm text-slate-600">Server-sent events push each thought, call and result as it happens.</p>
+    </div>
+    <div class="rounded-lg border border-slate-200 bg-white p-4">
+      <h3 class="font-semibold text-slate-900">Safe by design</h3>
+      <p class="mt-1 text-sm text-slate-600">SSRF-guarded fetch, sandboxed files, an eval-free calculator.</p>
+    </div>
+  </section>
+{% endblock %}

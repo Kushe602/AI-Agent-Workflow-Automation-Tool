@@ -1,0 +1,29 @@
+{% macro step_card(type, name, content, tool_input) %}
+  {% if type == 'tool_call' %}
+    <div class="rounded-lg border border-indigo-200 bg-indigo-50 p-3">
+      <div class="text-xs font-semibold uppercase tracking-wide text-indigo-700">&rarr; calling {{ name }}</div>
+      {% set parsed = tool_input | fromjson %}
+      <pre class="code mt-2 rounded bg-white/70 p-2 text-sm text-slate-700">{{ parsed | tojson(indent=2) if parsed is not none else tool_input }}</pre>
+    </div>
+  {% elif type == 'tool_result' %}
+    <div class="rounded-lg border border-slate-200 bg-white p-3">
+      <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">&larr; {{ name }} result</div>
+      <pre class="code mt-2 rounded bg-slate-50 p-2 text-sm text-slate-700">{{ content }}</pre>
+    </div>
+  {% elif type == 'final' %}
+    <div class="rounded-lg border border-green-300 bg-green-50 p-3">
+      <div class="text-xs font-semibold uppercase tracking-wide text-green-700">Final answer</div>
+      <div class="stream-text mt-1 text-slate-800">{{ content }}</div>
+    </div>
+  {% elif type == 'error' %}
+    <div class="rounded-lg border border-red-300 bg-red-50 p-3">
+      <div class="text-xs font-semibold uppercase tracking-wide text-red-700">Error</div>
+      <pre class="code mt-2 text-sm text-red-800">{{ content }}</pre>
+    </div>
+  {% else %}
+    <div class="rounded-lg border border-slate-200 bg-white p-3">
+      <div class="text-xs font-semibold uppercase tracking-wide text-slate-400">Thinking</div>
+      <div class="stream-text mt-1 text-slate-700">{{ content }}</div>
+    </div>
+  {% endif %}
+{% endmacro %}

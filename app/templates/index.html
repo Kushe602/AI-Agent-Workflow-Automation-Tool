@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — AgentFlow{% endblock %}
+{% block nav %}
+  <span class="hidden text-slate-500 sm:inline">{{ user.email }}</span>
+  <form method="post" action="/logout">
+    <button type="submit" class="text-slate-600 hover:text-slate-900">Log out</button>
+  </form>
+{% endblock %}
+{% block content %}
+  <section>
+    <h1 class="text-2xl font-bold text-slate-900">New run</h1>
+    <p class="mt-1 text-sm text-slate-600">Describe a goal and the agent will work toward it, using tools as needed.</p>
+    <form method="post" action="/runs" class="mt-4 space-y-3">
+      <textarea name="goal" rows="3" required placeholder="e.g. What is 4321 * 1234, and what's today's date?"
+        class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"></textarea>
+      <button type="submit" class="rounded-lg bg-indigo-600 px-5 py-2.5 font-medium text-white hover:bg-indigo-700">
+        Run agent
+      </button>
+    </form>
+  </section>
+
+  <section class="mt-10">
+    <h2 class="text-lg font-semibold text-slate-900">Recent runs</h2>
+    {% if runs %}
+      <ul class="mt-3 divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 bg-white">
+        {% for run in runs %}
+          <li>
+            <a href="/runs/{{ run.id }}" class="flex items-center justify-between gap-3 px-4 py-3 hover:bg-slate-50">
+              <span class="min-w-0 flex-1 truncate text-slate-800">{{ run.goal }}</span>
+              {% set color = {
+                'succeeded': 'bg-green-100 text-green-700',
+                'failed': 'bg-red-100 text-red-700',
+                'running': 'bg-amber-100 text-amber-700',
+                'pending': 'bg-slate-100 text-slate-600',
+                'stopped': 'bg-slate-200 text-slate-700'
+              } %}
+              <span class="shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium {{ color.get(run.status, 'bg-slate-100 text-slate-600') }}">
+                {{ run.status }}
+              </span>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="mt-3 rounded-lg border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-slate-500">
+        No runs yet. Start one above.
+      </p>
+    {% endif %}
+  </section>
+{% endblock %}

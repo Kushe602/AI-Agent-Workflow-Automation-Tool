@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Not found — AgentFlow{% endblock %}
+{% block nav %}
+  <a href="/" class="text-slate-600 hover:text-slate-900">Home</a>
+{% endblock %}
+{% block content %}
+  <div class="py-16 text-center">
+    <h1 class="text-3xl font-bold text-slate-900">Run not found</h1>
+    <p class="mt-2 text-slate-600">That run doesn't exist, or it isn't yours.</p>
+    <a href="/" class="mt-6 inline-block rounded-lg bg-indigo-600 px-5 py-2.5 font-medium text-white hover:bg-indigo-700">
+      Back to dashboard
+    </a>
+  </div>
+{% endblock %}

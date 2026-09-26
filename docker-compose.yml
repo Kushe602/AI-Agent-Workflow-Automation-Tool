@@ -1,0 +1,40 @@
+# Bring up AgentFlow with a Postgres database:
+#   docker compose up --build
+# Set ANTHROPIC_API_KEY in your shell (or a .env file) to use the real agent;
+# otherwise it runs in deterministic fake mode.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: agentflow
+      POSTGRES_PASSWORD: agentflow
+      POSTGRES_DB: agentflow
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agentflow"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  web:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://agentflow:agentflow@db:5432/agentflow
+      SECRET_KEY: ${SECRET_KEY:-dev-only-secret-change-me-to-32-random-bytes}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      USE_FAKE_AGENT: ${USE_FAKE_AGENT:-0}
+      CHAT_MODEL: ${CHAT_MODEL:-claude-sonnet-5}
+      MAX_ITERATIONS: ${MAX_ITERATIONS:-8}
+      TOOL_TIMEOUT_SECONDS: ${TOOL_TIMEOUT_SECONDS:-15}
+    ports:
+      - "8000:8000"
+    volumes:
+      - workspaces:/app/workspaces
+
+volumes:
+  pgdata:
+  workspaces:

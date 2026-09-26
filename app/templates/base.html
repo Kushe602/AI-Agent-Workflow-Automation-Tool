@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}AgentFlow{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <style>
+    .code {
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .stream-text {
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body class="flex h-full flex-col bg-slate-50 text-slate-800">
+  <header class="border-b border-slate-200 bg-white">
+    <div class="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
+      <a href="/" class="flex items-center gap-2 font-semibold text-slate-900">
+        <span class="inline-block h-6 w-6 rounded bg-indigo-600"></span>
+        AgentFlow
+      </a>
+      <nav class="flex items-center gap-3 text-sm">{% block nav %}{% endblock %}</nav>
+    </div>
+  </header>
+  <main class="mx-auto w-full max-w-3xl flex-1 px-4 py-8">{% block content %}{% endblock %}</main>
+  <footer class="border-t border-slate-200 py-4 text-center text-xs text-slate-400">
+    AgentFlow — an autonomous AI agent with real tool-calling.
+  </footer>
+</body>
+</html>
