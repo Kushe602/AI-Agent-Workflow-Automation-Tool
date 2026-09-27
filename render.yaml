@@ -1,0 +1,24 @@
+# Render Blueprint — one-click deploy of AgentFlow in its keyless demo mode.
+# In the Render dashboard: New + → Blueprint, connect this repo, and Render
+# reads this file, builds the Dockerfile, and provisions the service below.
+services:
+  - type: web
+    name: agentflow
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    autoDeploy: true          # redeploy on every push to the default branch
+    envVars:
+      # Signs JWT session cookies — Render generates a strong random value once.
+      - key: SECRET_KEY
+        generateValue: true
+      # Fake agent on (and no LLM_API_KEY) ⇒ the scripted demo agent runs,
+      #   so the live demo needs no API key and costs nothing per run.
+      - key: USE_FAKE_AGENT
+        value: "true"
+      # Per-run sandbox workspaces live here (ephemeral on the free plan).
+      - key: WORKSPACE_ROOT
+        value: "/app/workspaces"
+      # No DATABASE_URL → default SQLite (ephemeral on the free plan: runs reset
+      #   when the instance sleeps/redeploys — fine for a demo).

@@ -17,3 +17,9 @@ app = FastAPI(title="AgentFlow", lifespan=lifespan)
 app.include_router(pages.router)
 app.include_router(auth.router)
 app.include_router(runs.router)
+
+
+@app.get("/healthz", include_in_schema=False)
+async def healthz() -> dict[str, str]:
+    """Liveness probe for platform health checks — no auth, no DB touch."""
+    return {"status": "ok"}

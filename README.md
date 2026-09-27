@@ -2,9 +2,9 @@
 
 **An autonomous AI agent that completes tasks with real tool-calling — and streams every step to your browser, live.**
 
-[![CI](https://github.com/Kushe602/AgentFlow/actions/workflows/ci.yml/badge.svg)](https://github.com/Kushe602/AgentFlow/actions/workflows/ci.yml) ![Python](https://img.shields.io/badge/python-3.11%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green)
+[![CI](https://github.com/Kushe602/AI-Agent-Workflow-Automation-Tool/actions/workflows/ci.yml/badge.svg)](https://github.com/Kushe602/AI-Agent-Workflow-Automation-Tool/actions/workflows/ci.yml) ![Python](https://img.shields.io/badge/python-3.11%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) [![Deploy to Render](https://img.shields.io/badge/deploy-Render-46E3B7)](https://render.com/deploy?repo=https://github.com/Kushe602/AI-Agent-Workflow-Automation-Tool)
 
-AgentFlow gives Claude a goal and a toolbox, then runs the full agentic loop: the model reasons, calls tools, reads the results, and keeps going until the task is done. Every thought, tool call, and result is persisted **and** pushed to the browser over Server-Sent Events, so you watch the agent work — token by token — in real time.
+AgentFlow gives the model a goal and a toolbox, then runs the full agentic loop: the model reasons, calls tools, reads the results, and keeps going until the task is done. Every thought, tool call, and result is persisted **and** pushed to the browser over Server-Sent Events, so you watch the agent work — token by token — in real time.
 
 It's a single, all-Python FastAPI app: no separate frontend build, no external queue, no vector database. And it runs with **zero configuration** — leave the API key blank and a deterministic fake agent drives the exact same loop offline.
 
@@ -12,7 +12,7 @@ It's a single, all-Python FastAPI app: no separate frontend build, no external q
 
 ## ✨ Features
 
-- **Real Claude tool-use loop** — multi-turn `tool_use` / `tool_result` orchestration with a hard iteration cap and per-tool timeouts.
+- **Real tool-use loop** — multi-turn `tool_use` / `tool_result` orchestration with a hard iteration cap and per-tool timeouts.
 - **Live step streaming** — watch reasoning, tool calls, and results stream in over SSE (vanilla `EventSource`), with full replay on reload or reconnect.
 - **Pluggable tool registry** — JSON-schema'd tools; add one by writing a handler and registering it.
 - **Six built-in tools** — calculator, current time, web fetch, and a sandboxed per-run file workspace (write / read / list).
@@ -29,7 +29,7 @@ It's a single, all-Python FastAPI app: no separate frontend build, no external q
 goal ─▶ ┌──────────────────────────────────────────────┐
         │  run_agent loop   (max N iterations)          │
         │                                               │
-        │   Claude.stream_turn ──▶ text + tool_uses     │
+        │   model.stream_turn  ──▶ text + tool_uses     │
         │        │                       │              │
         │        ▼                       ▼              │
         │   stream tokens          run tools (timeout)  │
@@ -74,7 +74,7 @@ Every run gets its own isolated workspace directory; the file tools cannot escap
 
 ## 🏗️ Tech stack
 
-**FastAPI** · **Uvicorn** · **SQLAlchemy 2.0 (async)** · **SQLite / Postgres** · **Anthropic Claude** · **Jinja2** · **HTMX + Tailwind (CDN)** · **Server-Sent Events** · **pytest** · **ruff** — all Python, no JS build step.
+**FastAPI** · **Uvicorn** · **SQLAlchemy 2.0 (async)** · **SQLite / Postgres** · **Any OpenAI-compatible LLM** · **Jinja2** · **HTMX + Tailwind (CDN)** · **Server-Sent Events** · **pytest** · **ruff** — all Python, no JS build step.
 
 ---
 
@@ -91,15 +91,15 @@ uvicorn app.main:app --reload
 
 Open <http://localhost:8000>, register an account, and give the agent a goal — try *"What is 21 * 2?"* or *"Save a haiku about the ocean to poem.txt."* With no API key set, the **fake agent** runs the whole loop deterministically, which is perfect for a first look.
 
-### With a real Claude API key
+### With a real API key
 
 ```bash
 cp .env.example .env
-# edit .env and set ANTHROPIC_API_KEY=sk-ant-...
+# edit .env and set LLM_API_KEY=...  (any OpenAI-compatible provider)
 uvicorn app.main:app --reload
 ```
 
-Now goals are driven by Claude choosing and calling tools for real.
+Now goals are driven by the model choosing and calling tools for real.
 
 ---
 
@@ -107,10 +107,20 @@ Now goals are driven by Claude choosing and calling tools for real.
 
 ```bash
 # App + Postgres in one command:
-ANTHROPIC_API_KEY=sk-ant-... docker compose up --build
+LLM_API_KEY=... docker compose up --build
 ```
 
 Then open <http://localhost:8000>. Omit the API key to run the fake agent inside the container.
+
+---
+
+## ☁️ Deploy a live demo (Render, free)
+
+AgentFlow ships a [`render.yaml`](render.yaml) Blueprint that deploys the **keyless demo** — the deterministic fake agent drives the full tool-calling loop, so the live app needs no API key and costs nothing to run.
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Kushe602/AI-Agent-Workflow-Automation-Tool)
+
+Click the button (or in the Render dashboard use **New + → Blueprint** and pick this repo). Render builds the Dockerfile, generates a `SECRET_KEY`, sets `USE_FAKE_AGENT=true`, and serves the app — SSE streaming included — over HTTPS. The free plan sleeps when idle (~50s cold start) and uses ephemeral SQLite (runs reset on restart). Set `LLM_API_KEY` (plus `LLM_BASE_URL` / `LLM_MODEL` for your provider, and drop `USE_FAKE_AGENT`) for real model-driven runs.
 
 ---
 
@@ -131,7 +141,7 @@ The suite covers the tools' guardrails, the full agent loop end-to-end via the f
 app/
   agent/
     engine.py      # the tool-calling loop: drive model, run tools, persist + stream
-    models.py      # Claude + deterministic fake model behind one interface
+    models.py      # OpenAI-compatible + deterministic fake model behind one interface
     events.py      # in-process pub/sub broker for live SSE
     prompts.py     # system prompt
     tools/         # calculator, datetime, web_fetch, files + registry
@@ -139,16 +149,19 @@ app/
   templates/       # Jinja2 + HTMX views
   config.py  database.py  models.py  security.py  dependencies.py  web.py  main.py
 tests/             # tools, agent loop, and HTTP-level tests
-```---
+```
+
+---
 
 ## ⚙️ Configuration
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `ANTHROPIC_API_KEY` | *(blank)* | Claude key; blank enables the fake agent |
+| `LLM_API_KEY` | *(blank)* | API key for any OpenAI-compatible provider; blank enables the fake agent |
 | `SECRET_KEY` | dev value | Signs JWT session cookies (use 32+ random bytes) |
 | `DATABASE_URL` | local SQLite | Async DB URL (`postgresql+asyncpg://…` for Postgres) |
-| `CHAT_MODEL` | `claude-sonnet-5` | Model driving the agent |
+| `LLM_BASE_URL` | `https://api.justwoker.icu/v1` | OpenAI-compatible API base URL |
+| `LLM_MODEL` | `gpt-4o-mini` | Model id (served by your provider) driving the agent |
 | `USE_FAKE_AGENT` | `0` | Set `1` to force the fake agent even with a key present |
 | `MAX_ITERATIONS` | `8` | Max tool-loop turns per run |
 | `TOOL_TIMEOUT_SECONDS` | `15` | Per-tool execution timeout |

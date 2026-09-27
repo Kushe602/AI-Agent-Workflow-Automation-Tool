@@ -10,9 +10,10 @@ class Settings(BaseSettings):
     secret_key: str = "dev-secret-change-me-to-a-long-random-value-32b"
     database_url: str = "sqlite+aiosqlite:///./agentflow.db"
 
-    # LLM
-    anthropic_api_key: str = ""
-    chat_model: str = "claude-sonnet-5"
+    # LLM (OpenAI-compatible: any provider/gateway that speaks the OpenAI API)
+    llm_api_key: str = ""
+    llm_base_url: str = "https://api.justwoker.icu/v1"
+    llm_model: str = "gpt-4o-mini"
     use_fake_agent: bool = False
     max_tokens: int = 1024
 
@@ -30,8 +31,8 @@ class Settings(BaseSettings):
 
     @property
     def agent_enabled(self) -> bool:
-        """Real Claude calls happen only with an API key set and fake mode off."""
-        return bool(self.anthropic_api_key) and not self.use_fake_agent
+        """Real model calls happen only with an API key set and fake mode off."""
+        return bool(self.llm_api_key) and not self.use_fake_agent
 
 
 @lru_cache

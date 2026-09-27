@@ -1,6 +1,6 @@
 # Bring up AgentFlow with a Postgres database:
 #   docker compose up --build
-# Set ANTHROPIC_API_KEY in your shell (or a .env file) to use the real agent;
+# Set LLM_API_KEY in your shell (or a .env file) to use the real agent;
 # otherwise it runs in deterministic fake mode.
 services:
   db:
@@ -25,9 +25,10 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://agentflow:agentflow@db:5432/agentflow
       SECRET_KEY: ${SECRET_KEY:-dev-only-secret-change-me-to-32-random-bytes}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.justwoker.icu/v1}
+      LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
       USE_FAKE_AGENT: ${USE_FAKE_AGENT:-0}
-      CHAT_MODEL: ${CHAT_MODEL:-claude-sonnet-5}
       MAX_ITERATIONS: ${MAX_ITERATIONS:-8}
       TOOL_TIMEOUT_SECONDS: ${TOOL_TIMEOUT_SECONDS:-15}
     ports:

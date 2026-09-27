@@ -91,7 +91,7 @@ async def run_agent(run_id: str) -> None:
             return
 
         run.status = "running"
-        run.model = settings.chat_model if settings.agent_enabled else "fake"
+        run.model = settings.llm_model if settings.agent_enabled else "fake"
         await db.commit()
         await broker.publish(run_id, {"event": "status", "status": "running"})
 

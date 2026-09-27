@@ -8,7 +8,7 @@ import tempfile
 _TMP = tempfile.mkdtemp(prefix="agentflow-test-")
 os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{(pathlib.Path(_TMP) / 'test.db').as_posix()}"
 os.environ["USE_FAKE_AGENT"] = "1"
-os.environ["ANTHROPIC_API_KEY"] = ""
+os.environ["LLM_API_KEY"] = ""
 os.environ["WORKSPACE_ROOT"] = str(pathlib.Path(_TMP) / "workspaces")
 os.environ["SECRET_KEY"] = "test-secret-key-0123456789abcdef0123456789"
 

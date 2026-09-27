@@ -1,11 +1,16 @@
-"""Model abstraction over Anthropic Claude, plus a deterministic offline fake.
+"""Model abstraction over an OpenAI-compatible chat model, plus a deterministic
+offline fake.
 
 Both models expose the same ``stream_turn`` coroutine: it streams assistant text via
 the ``on_text`` callback as it arrives and returns a :class:`Turn` describing the full
-assistant message (text plus any tool-use requests). The engine stays provider-agnostic.
+assistant message (text plus any tool-use requests). The engine works in one internal
+format (Anthropic-style content blocks); :class:`OpenAIModel` translates that to and
+from the OpenAI Chat Completions wire format, so any OpenAI-compatible provider drives
+the same loop without changing the engine.
 """
 from __future__ import annotations
 
+import json
 import re
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -37,37 +42,135 @@ class BaseModel:
         raise NotImplementedError
 
 
-class ClaudeModel(BaseModel):
-    """Real tool-using turns via the Anthropic streaming Messages API."""
+def _to_openai_tools(tools: list[dict]) -> list[dict]:
+    """Anthropic-style tool schemas -> OpenAI function-tool schemas."""
+    return [
+        {
+            "type": "function",
+            "function": {
+                "name": tool["name"],
+                "description": tool.get("description", ""),
+                "parameters": tool.get("input_schema", {"type": "object", "properties": {}}),
+            },
+        }
+        for tool in tools
+    ]
+
+
+def _parse_args(raw: str) -> dict:
+    """Parse streamed tool-call argument JSON into a dict, defensively."""
+    raw = raw.strip()
+    if not raw:
+        return {}
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def _to_openai_messages(messages: list[dict]) -> list[dict]:
+    """Anthropic-style content-block messages -> OpenAI chat messages: the system
+    prompt leads, tool_use -> assistant tool_calls, tool_result -> role="tool"."""
+    out: list[dict] = [{"role": "system", "content": SYSTEM_PROMPT}]
+    for message in messages:
+        role = message["role"]
+        content = message["content"]
+        if isinstance(content, str):
+            out.append({"role": role, "content": content})
+            continue
+        if role == "assistant":
+            text = "".join(
+                block["text"]
+                for block in content
+                if isinstance(block, dict) and block.get("type") == "text"
+            )
+            tool_calls = [
+                {
+                    "id": block["id"],
+                    "type": "function",
+                    "function": {
+                        "name": block["name"],
+                        "arguments": json.dumps(block.get("input", {})),
+                    },
+                }
+                for block in content
+                if isinstance(block, dict) and block.get("type") == "tool_use"
+            ]
+            msg: dict = {"role": "assistant", "content": text or None}
+            if tool_calls:
+                msg["tool_calls"] = tool_calls
+            out.append(msg)
+        else:
+            for block in content:
+                if not isinstance(block, dict):
+                    continue
+                if block.get("type") == "tool_result":
+                    out.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": block["tool_use_id"],
+                            "content": str(block.get("content", "")),
+                        }
+                    )
+                elif block.get("type") == "text":
+                    out.append({"role": "user", "content": block.get("text", "")})
+    return out
+
+
+class OpenAIModel(BaseModel):
+    """Real tool-using turns via any OpenAI-compatible Chat Completions API."""
 
     def __init__(self) -> None:
-        from anthropic import AsyncAnthropic
+        from openai import AsyncOpenAI
 
-        self._client = AsyncAnthropic(api_key=settings.anthropic_api_key)
+        self._client = AsyncOpenAI(
+            api_key=settings.llm_api_key, base_url=settings.llm_base_url
+        )
 
     async def stream_turn(
         self, messages: list[dict], tools: list[dict], on_text: OnText
     ) -> Turn:
-        async with self._client.messages.stream(
-            model=settings.chat_model,
+        stream = await self._client.chat.completions.create(
+            model=settings.llm_model,
             max_tokens=settings.max_tokens,
-            system=SYSTEM_PROMPT,
-            tools=tools,
-            messages=messages,
-        ) as stream:
-            async for delta in stream.text_stream:
-                await on_text(delta)
-            final = await stream.get_final_message()
-
-        text = "".join(
-            block.text for block in final.content if getattr(block, "type", None) == "text"
+            messages=_to_openai_messages(messages),
+            tools=_to_openai_tools(tools) or None,
+            stream=True,
         )
+        text_parts: list[str] = []
+        calls: dict[int, dict] = {}
+        stop_reason = ""
+        async for chunk in stream:
+            if not chunk.choices:
+                continue
+            choice = chunk.choices[0]
+            if choice.delta.content:
+                text_parts.append(choice.delta.content)
+                await on_text(choice.delta.content)
+            for tc in choice.delta.tool_calls or []:
+                slot = calls.setdefault(tc.index, {"id": "", "name": "", "args": ""})
+                if tc.id:
+                    slot["id"] = tc.id
+                if tc.function and tc.function.name:
+                    slot["name"] = tc.function.name
+                if tc.function and tc.function.arguments:
+                    slot["args"] += tc.function.arguments
+            if choice.finish_reason:
+                stop_reason = choice.finish_reason
         tool_uses = [
-            ToolUse(id=block.id, name=block.name, input=dict(block.input))
-            for block in final.content
-            if getattr(block, "type", None) == "tool_use"
+            ToolUse(
+                id=slot["id"] or f"call_{i}",
+                name=slot["name"],
+                input=_parse_args(slot["args"]),
+            )
+            for i, slot in sorted(calls.items())
         ]
-        return Turn(text=text, tool_uses=tool_uses, stop_reason=final.stop_reason or "")
+        return Turn(
+            text="".join(text_parts),
+            tool_uses=tool_uses,
+            stop_reason="tool_use" if tool_uses else (stop_reason or "end_turn"),
+        )
 
 
 class FakeModel(BaseModel):
@@ -169,5 +272,5 @@ class FakeModel(BaseModel):
 
 def get_model() -> BaseModel:
     if settings.agent_enabled:
-        return ClaudeModel()
+        return OpenAIModel()
     return FakeModel()
