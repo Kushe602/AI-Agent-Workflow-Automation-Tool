@@ -2,7 +2,12 @@
 
 **An autonomous AI agent that completes tasks with real tool-calling — and streams every step to your browser, live.**
 
-[![CI](https://github.com/Kushe602/AI-Agent-Workflow-Automation-Tool/actions/workflows/ci.yml/badge.svg)](https://github.com/Kushe602/AI-Agent-Workflow-Automation-Tool/actions/workflows/ci.yml) ![Python](https://img.shields.io/badge/python-3.11%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) [![Deploy to Render](https://img.shields.io/badge/deploy-Render-46E3B7)](https://render.com/deploy?repo=https://github.com/Kushe602/AI-Agent-Workflow-Automation-Tool)
+[![Live demo](https://img.shields.io/badge/live%20demo-online-brightgreen)](https://agentflow-o1db.onrender.com) [![CI](https://github.com/Kushe602/AI-Agent-Workflow-Automation-Tool/actions/workflows/ci.yml/badge.svg)](https://github.com/Kushe602/AI-Agent-Workflow-Automation-Tool/actions/workflows/ci.yml) ![Python](https://img.shields.io/badge/python-3.11%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) [![Deploy to Render](https://img.shields.io/badge/deploy-Render-46E3B7)](https://render.com/deploy?repo=https://github.com/Kushe602/AI-Agent-Workflow-Automation-Tool)
+
+> **Live demo:** https://agentflow-o1db.onrender.com — hosted on a free instance,
+> so the first request may take ~50s to wake it. It runs the deterministic fake
+> agent (no API key), so you can register, give it a goal, and watch the full
+> tool-calling loop stream live.
 
 AgentFlow gives the model a goal and a toolbox, then runs the full agentic loop: the model reasons, calls tools, reads the results, and keeps going until the task is done. Every thought, tool call, and result is persisted **and** pushed to the browser over Server-Sent Events, so you watch the agent work — token by token — in real time.
 
