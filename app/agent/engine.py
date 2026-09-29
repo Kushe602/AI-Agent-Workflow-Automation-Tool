@@ -84,6 +84,25 @@ async def _finish(db, run: Run, run_id: str, status: str, error: str | None) -> 
     asyncio.get_running_loop().call_later(_EVICT_AFTER_SECONDS, broker.evict, run_id)
 
 
+def enabled_tool_names(run: Run) -> list[str] | None:
+    """The tools enabled for this run, or ``None`` when every tool is enabled.
+
+    ``Run.tools`` holds a JSON array chosen at creation time; unknown names are
+    dropped and an empty/blank/invalid value means "all tools".
+    """
+    if not run.tools:
+        return None
+    try:
+        selected = json.loads(run.tools)
+    except (ValueError, TypeError):
+        return None
+    if not isinstance(selected, list):
+        return None
+    wanted = {name for name in selected if isinstance(name, str)}
+    valid = [name for name in registry.names() if name in wanted]
+    return valid or None
+
+
 async def run_agent(run_id: str) -> None:
     async with SessionLocal() as db:
         run = await db.get(Run, run_id)
@@ -97,19 +116,22 @@ async def run_agent(run_id: str) -> None:
 
         model = get_model()
         ctx = ToolContext(run_id=run_id, workspace=Path(settings.workspace_root) / run_id)
+        enabled = enabled_tool_names(run)  # None => every tool is enabled
+        enabled_set = set(enabled) if enabled is not None else None
+        tool_schemas = registry.schemas(enabled)
         messages: list[dict] = [{"role": "user", "content": run.goal}]
         idx = 0
 
         try:
             for _iteration in range(settings.max_iterations):
                 if broker.is_stopped(run_id):
-                    await _finish(db, run, run_id, "stopped", None)
+                    await _finish(db, run, run_id, "cancelled", None)
                     return
 
                 step_id = _uuid()
                 state = {"open": False}
                 on_text = _make_on_text(run_id, step_id, idx, state)
-                turn: Turn = await model.stream_turn(messages, registry.schemas(), on_text)
+                turn: Turn = await model.stream_turn(messages, tool_schemas, on_text)
 
                 step_type = "thinking" if turn.tool_uses else "final"
                 if turn.text.strip() or state["open"]:
@@ -154,6 +176,9 @@ async def run_agent(run_id: str) -> None:
 
                 tool_results: list[dict] = []
                 for tool_use in turn.tool_uses:
+                    if broker.is_stopped(run_id):
+                        await _finish(db, run, run_id, "cancelled", None)
+                        return
                     input_json = json.dumps(tool_use.input, ensure_ascii=False)
                     await _persist_step(db, run_id, idx, "tool_call", tool_use.name, "", input_json)
                     await broker.publish(
@@ -169,7 +194,10 @@ async def run_agent(run_id: str) -> None:
                     )
                     idx += 1
 
-                    result = await _run_tool(tool_use, ctx)
+                    if enabled_set is not None and tool_use.name not in enabled_set:
+                        result = f"Error: tool '{tool_use.name}' is not enabled for this run."
+                    else:
+                        result = await _run_tool(tool_use, ctx)
                     await _persist_step(db, run_id, idx, "tool_result", tool_use.name, result, None)
                     await broker.publish(
                         run_id,

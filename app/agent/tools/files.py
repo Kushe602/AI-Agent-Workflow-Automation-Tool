@@ -11,15 +11,37 @@ _MAX_READ_CHARS = 20_000
 _MAX_WRITE_CHARS = 100_000
 
 
-def _resolve(ctx: ToolContext, rel: str) -> Path:
-    workspace = ctx.workspace.resolve()
-    workspace.mkdir(parents=True, exist_ok=True)
+def safe_path(workspace: Path, rel: str) -> Path:
+    """Resolve ``rel`` under ``workspace``, refusing anything that escapes it.
+
+    Shared by the file tools and the run artifacts browser so both enforce the same
+    path-traversal guard. Raises ``ValueError`` for escapes or the workspace root.
+    """
+    workspace = workspace.resolve()
     candidate = (workspace / rel).resolve()
     if not candidate.is_relative_to(workspace):
         raise ValueError("path escapes the workspace")
     if candidate == workspace:
         raise ValueError("a file path is required, not the workspace root")
     return candidate
+
+
+def list_workspace(workspace: Path) -> list[dict]:
+    """List every file under ``workspace`` as ``{"path", "size"}``, sorted by path."""
+    workspace = workspace.resolve()
+    if not workspace.exists():
+        return []
+    return [
+        {"path": p.relative_to(workspace).as_posix(), "size": p.stat().st_size}
+        for p in sorted(workspace.rglob("*"))
+        if p.is_file()
+    ]
+
+
+def _resolve(ctx: ToolContext, rel: str) -> Path:
+    workspace = ctx.workspace.resolve()
+    workspace.mkdir(parents=True, exist_ok=True)
+    return safe_path(workspace, rel)
 
 
 async def _write(tool_input: dict, ctx: ToolContext) -> str:

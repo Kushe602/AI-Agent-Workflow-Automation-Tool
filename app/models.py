@@ -37,9 +37,11 @@ class Run(Base):
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
     owner_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
     goal: Mapped[str] = mapped_column(Text)
-    # pending | running | succeeded | failed | stopped
+    # pending | running | succeeded | failed | cancelled
     status: Mapped[str] = mapped_column(String(20), default="pending")
     model: Mapped[str] = mapped_column(String(80), default="")
+    # JSON array of enabled tool names for this run; NULL means all tools are enabled.
+    tools: Mapped[str | None] = mapped_column(Text, nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(default=_now, index=True)
 

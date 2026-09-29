@@ -183,6 +183,13 @@ class FakeModel(BaseModel):
 
     _MATH_RE = re.compile(r"[-+*/().\d\s%]+")
     _URL_RE = re.compile(r"https?://\S+")
+    _UNIT_RE = re.compile(
+        r"convert\s+(-?\d+(?:\.\d+)?)\s*([a-zA-Z°]+)\s+(?:to|into)\s+([a-zA-Z°]+)",
+        re.IGNORECASE,
+    )
+    _COUNT_RE = re.compile(r"(\d+)\s+(?:uuid|guid)")
+    _JSON_BLOCK_RE = re.compile(r"\{.*\}", re.DOTALL)
+    _JSON_PATH_RE = re.compile(r"[A-Za-z_]\w*(?:(?:\.\w+)|(?:\[\d+\]))+")
 
     async def stream_turn(
         self, messages: list[dict], tools: list[dict], on_text: OnText
@@ -197,17 +204,28 @@ class FakeModel(BaseModel):
         )
         goal = self._first_user_text(messages)
         if not used_tool:
-            tool_use = self._pick_tool(goal)
+            available = {tool.get("name") for tool in tools}
+            tool_use = self._pick_tool(goal, available)
             if tool_use is not None:
-                text = "On it — let me use a tool to help with that."
-                await self._emit(on_text, text)
-                return Turn(text=text, tool_uses=[tool_use], stop_reason="tool_use")
+                plan = (
+                    f"Plan: I'll use the {tool_use.name} tool to make progress, "
+                    "then report the result."
+                )
+                await self._emit(on_text, plan)
+                return Turn(text=plan, tool_uses=[tool_use], stop_reason="tool_use")
 
         answer = self._final_answer(messages, goal)
         await self._emit(on_text, answer)
         return Turn(text=answer, tool_uses=[], stop_reason="end_turn")
 
-    def _pick_tool(self, goal: str) -> ToolUse | None:
+    def _pick_tool(self, goal: str, available: set) -> ToolUse | None:
+        """Choose a tool for the goal, but only one the run actually enabled."""
+        candidate = self._candidate(goal)
+        if candidate is not None and candidate.name in available:
+            return candidate
+        return None
+
+    def _candidate(self, goal: str) -> ToolUse | None:
         low = goal.lower()
         url_match = self._URL_RE.search(goal)
         if url_match or any(k in low for k in ("fetch", "http", "website", "url")):
@@ -215,6 +233,31 @@ class FakeModel(BaseModel):
             return ToolUse(id="fake_web", name="web_fetch", input={"url": url})
         if any(k in low for k in ("time", "date", "today", "now", "clock")):
             return ToolUse(id="fake_dt", name="current_datetime", input={})
+        if "uuid" in low or "guid" in low:
+            count_match = self._COUNT_RE.search(low)
+            count = max(1, min(int(count_match.group(1)), 100)) if count_match else 1
+            return ToolUse(id="fake_uuid", name="uuid_generate", input={"count": count})
+        unit_match = self._UNIT_RE.search(goal)
+        if unit_match:
+            value, from_unit, to_unit = unit_match.groups()
+            return ToolUse(
+                id="fake_unit",
+                name="unit_convert",
+                input={"value": float(value), "from": from_unit, "to": to_unit},
+            )
+        if ("word" in low and "count" in low) or any(
+            k in low for k in ("text stat", "statistics", "word frequency")
+        ):
+            return ToolUse(id="fake_stats", name="text_stats", input={"text": goal})
+        if "json" in low:
+            block = self._JSON_BLOCK_RE.search(goal)
+            path = self._JSON_PATH_RE.search(goal)
+            if block and path:
+                return ToolUse(
+                    id="fake_json",
+                    name="json_query",
+                    input={"json": block.group(0), "path": path.group(0)},
+                )
         if any(k in low for k in ("file", "save", "write", "note")):
             return ToolUse(
                 id="fake_file",

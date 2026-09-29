@@ -1,7 +1,7 @@
 """Tool base types: the context passed to tools and the registry that holds them."""
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -50,5 +50,16 @@ class ToolRegistry:
     def __iter__(self):
         return iter(self._tools.values())
 
-    def schemas(self) -> list[dict]:
-        return [tool.schema for tool in self._tools.values()]
+    def names(self) -> list[str]:
+        return list(self._tools.keys())
+
+    def schemas(self, names: Iterable[str] | None = None) -> list[dict]:
+        """Tool schemas, optionally filtered to (and ordered by) ``names``.
+
+        With ``names=None`` every registered tool is returned; otherwise only the
+        named tools that exist, preserving registration order.
+        """
+        if names is None:
+            return [tool.schema for tool in self._tools.values()]
+        allowed = set(names)
+        return [tool.schema for tool in self._tools.values() if tool.name in allowed]

@@ -20,7 +20,11 @@ It's a single, all-Python FastAPI app: no separate frontend build, no external q
 - **Real tool-use loop** — multi-turn `tool_use` / `tool_result` orchestration with a hard iteration cap and per-tool timeouts.
 - **Live step streaming** — watch reasoning, tool calls, and results stream in over SSE (vanilla `EventSource`), with full replay on reload or reconnect.
 - **Pluggable tool registry** — JSON-schema'd tools; add one by writing a handler and registering it.
-- **Six built-in tools** — calculator, current time, web fetch, and a sandboxed per-run file workspace (write / read / list).
+- **Ten built-in tools** — calculator, current time, web fetch, a sandboxed per-run file workspace (write / read / list), plus JSON query, text statistics, unit conversion, and UUID generation.
+- **Per-run tool selection** — choose exactly which tools a run may use; the engine exposes only those and refuses the rest.
+- **Stop a run mid-flight** — cancel a running agent cleanly; the loop halts, the stream closes, and the run is marked `cancelled`.
+- **Workspace artifacts browser** — list, view, and download every file a run wrote, straight from the run page (path-traversal safe).
+- **Export to Markdown** — download a finished run — goal, every step, and the final answer — as one self-contained Markdown file.
 - **Security-first tools** — SSRF-guarded fetching, an AST-based calculator (no `eval`), and path-traversal-safe file access.
 - **Runs offline** — a deterministic fake agent exercises the entire engine with no API key, so tests and demos need nothing.
 - **Accounts & history** — bcrypt + JWT cookie auth; every run and step is stored and replayable.
@@ -61,8 +65,12 @@ Each step is written to the database **and** published to an in-process broker. 
 | `write_file` | Write a file in the run's workspace | Sandboxed, path-traversal safe |
 | `read_file` | Read a file from the workspace | Sandboxed, size cap |
 | `list_files` | List files in the workspace | Sandboxed |
+| `json_query` | Extract a value from a JSON document by key/index path | No `eval`, input-size and path-depth caps |
+| `text_stats` | Character / word / line counts and top words for a text | Input-size cap |
+| `unit_convert` | Convert length, mass, or temperature units | Fixed unit table, no `eval` |
+| `uuid_generate` | Generate one or more random UUIDs | Count capped |
 
-Every run gets its own isolated workspace directory; the file tools cannot escape it.
+Every run gets its own isolated workspace directory; the file tools cannot escape it. Each run can also be restricted to a subset of these tools at creation time.
 
 ---
 
@@ -136,7 +144,7 @@ ruff check .
 pytest -q
 ```
 
-The suite covers the tools' guardrails, the full agent loop end-to-end via the fake model, and the HTTP layer — auth, ownership, and a run streamed to completion.
+The suite covers the tools' guardrails (including the JSON, text, unit, and UUID tools), the full agent loop end-to-end via the fake model — new-tool calls, per-run tool selection, and cancellation — and the HTTP layer: auth, ownership, the workspace artifacts browser, Markdown export, and a run streamed to completion.
 
 ---
 

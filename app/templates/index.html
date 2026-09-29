@@ -13,6 +13,22 @@
     <form method="post" action="/runs" class="mt-4 space-y-3">
       <textarea name="goal" rows="3" required placeholder="e.g. What is 4321 * 1234, and what's today's date?"
         class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"></textarea>
+      <fieldset class="rounded-lg border border-slate-200 bg-white p-3">
+        <legend class="px-1 text-sm font-medium text-slate-700">Tools</legend>
+        <p class="mb-2 text-xs text-slate-500">Pick which tools the agent may use for this run. Leave all checked to allow everything.</p>
+        <div class="grid gap-2 sm:grid-cols-2">
+          {% for tool in tools %}
+            <label class="flex items-start gap-2 text-sm">
+              <input type="checkbox" name="tools" value="{{ tool.name }}" checked
+                class="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+              <span class="min-w-0">
+                <span class="font-mono text-slate-800">{{ tool.name }}</span>
+                <span class="block text-xs text-slate-500">{{ tool.description }}</span>
+              </span>
+            </label>
+          {% endfor %}
+        </div>
+      </fieldset>
       <button type="submit" class="rounded-lg bg-indigo-600 px-5 py-2.5 font-medium text-white hover:bg-indigo-700">
         Run agent
       </button>
@@ -32,7 +48,7 @@
                 'failed': 'bg-red-100 text-red-700',
                 'running': 'bg-amber-100 text-amber-700',
                 'pending': 'bg-slate-100 text-slate-600',
-                'stopped': 'bg-slate-200 text-slate-700'
+                'cancelled': 'bg-slate-200 text-slate-700'
               } %}
               <span class="shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium {{ color.get(run.status, 'bg-slate-100 text-slate-600') }}">
                 {{ run.status }}

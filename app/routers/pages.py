@@ -4,6 +4,7 @@ from fastapi.responses import HTMLResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agent.tools import registry
 from app.database import get_db
 from app.dependencies import get_optional_user
 from app.models import Run, User
@@ -24,7 +25,9 @@ async def index(
         select(Run).where(Run.owner_id == user.id).order_by(Run.created_at.desc()).limit(50)
     )
     runs = result.scalars().all()
-    return templates.TemplateResponse(request, "index.html", {"user": user, "runs": runs})
+    return templates.TemplateResponse(
+        request, "index.html", {"user": user, "runs": runs, "tools": list(registry)}
+    )
 
 
 @router.get("/health")
