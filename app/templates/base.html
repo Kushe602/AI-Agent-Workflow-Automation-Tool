@@ -3,32 +3,70 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#090d18" />
+  <meta name="color-scheme" content="dark" />
   <title>{% block title %}AgentFlow{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
   <style>
-    .code {
-      white-space: pre-wrap;
-      word-break: break-word;
+    :root {
+      color-scheme: dark;
+      --page: #090d18;
+      --surface: rgba(19, 27, 45, .9);
+      --line: rgba(148, 163, 184, .18);
+      --text: #e8eef9;
+      --muted: #9ba9bf;
+      --accent: #8b7cff;
+      --accent-bright: #a69aff;
     }
-    .stream-text {
-      white-space: pre-wrap;
+    * { box-sizing: border-box; }
+    html { background: var(--page); scroll-behavior: smooth; }
+    body {
+      color: var(--text);
+      background:
+        radial-gradient(ellipse at 12% 0%, rgba(91, 76, 220, .18), transparent 36rem),
+        radial-gradient(ellipse at 92% 8%, rgba(14, 165, 233, .10), transparent 30rem),
+        var(--page);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: -.01em;
+    }
+    body .bg-white, body .bg-slate-50, body .bg-slate-100 { background-color: var(--surface) !important; color: var(--text); }
+    body .text-slate-900, body .text-slate-800, body .text-slate-700 { color: var(--text) !important; }
+    body .text-slate-600, body .text-slate-500, body .text-slate-400 { color: var(--muted) !important; }
+    body [class*="border-slate-"] { border-color: var(--line) !important; }
+    body .bg-indigo-600 { background-color: var(--accent) !important; }
+    body .hover\:bg-indigo-700:hover, body .hover\:bg-indigo-500:hover { background-color: var(--accent-bright) !important; }
+    body .hover\:bg-slate-50:hover, body .hover\:bg-slate-100:hover { background-color: rgba(148, 163, 184, .09) !important; }
+    body .shadow-sm { box-shadow: 0 16px 44px rgba(0, 0, 0, .16); }
+    body .rounded-lg, body .rounded-xl, body .rounded-2xl { transition: border-color .18s ease, background-color .18s ease, transform .18s ease, box-shadow .18s ease; }
+    body a.rounded-lg:hover, body a.rounded-xl:hover { border-color: rgba(166, 154, 255, .42); }
+    a, button, input, textarea, select { transition: color .18s ease, background-color .18s ease, border-color .18s ease, box-shadow .18s ease; }
+    a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+      outline: 2px solid var(--accent-bright);
+      outline-offset: 3px;
+    }
+    input, textarea, select { background-color: #0e1627; color: var(--text); border-color: var(--line); }
+    input::placeholder, textarea::placeholder { color: #77869e; }
+    .code, .stream-text { white-space: pre-wrap; word-break: break-word; }
+    ::selection { background: rgba(139, 124, 255, .36); }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
     }
   </style>
 </head>
-<body class="flex h-full flex-col bg-slate-50 text-slate-800">
+<body class="flex min-h-full flex-col">
   <header class="border-b border-slate-200 bg-white">
-    <div class="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
-      <a href="/" class="flex items-center gap-2 font-semibold text-slate-900">
-        <span class="inline-block h-6 w-6 rounded bg-indigo-600"></span>
-        AgentFlow
+    <div class="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-4 sm:px-6">
+      <a href="/" class="flex items-center gap-3 font-semibold text-slate-900">
+        <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 text-sm font-bold text-white shadow-sm">AF</span>
+        <span>AgentFlow <span class="ml-1 hidden text-xs font-normal text-slate-500 sm:inline">AI workflow workspace</span></span>
       </a>
       <nav class="flex items-center gap-3 text-sm">{% block nav %}{% endblock %}</nav>
     </div>
   </header>
-  <main class="mx-auto w-full max-w-3xl flex-1 px-4 py-8">{% block content %}{% endblock %}</main>
-  <footer class="border-t border-slate-200 py-4 text-center text-xs text-slate-400">
-    AgentFlow — an autonomous AI agent with real tool-calling.
+  <main class="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6 sm:py-10">{% block content %}{% endblock %}</main>
+  <footer class="border-t border-slate-200 px-4 py-5 text-center text-xs text-slate-400">
+    AgentFlow · Goal-driven AI runs, observable tool calls, and replayable results.
   </footer>
 </body>
 </html>
