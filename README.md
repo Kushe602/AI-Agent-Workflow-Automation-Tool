@@ -13,6 +13,9 @@ AgentFlow gives the model a goal and a toolbox, then runs the full agentic loop:
 
 It's a single, all-Python FastAPI app: no separate frontend build, no external queue, no vector database. And it runs with **zero configuration** — leave the API key blank and a deterministic fake agent drives the exact same loop offline.
 
+
+> **Interface notes:** [UI guide](docs/UI_GUIDE.md) · [Live demo](https://agentflow-o1db.onrender.com). The guide describes the current screens and a practical verification checklist.
+
 ---
 
 ## ✨ Features
